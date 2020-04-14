@@ -1,5 +1,5 @@
 "use strict";
-// --------- This code has been automatically generated !!! 2020-04-13T11:10:54.442Z
+// --------- This code has been automatically generated !!! 2020-04-13T16:34:58.036Z
 /**
  * @module node-opcua-types
  */
