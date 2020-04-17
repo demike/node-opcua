@@ -36,7 +36,7 @@ node_modules/
 *#
 tmptmp/
 demo/
-dump*
+#dump*
 a.*
 *.pcap
 *.raw
