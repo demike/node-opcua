@@ -1,3 +1,5 @@
+const runScript = require('@npmcli/run-script')
+
 const packages = "./packages";
 const root_node_modules = "../"
 
