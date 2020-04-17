@@ -1,3 +1,4 @@
+const fs = require("fs");
 const runScript = require('@npmcli/run-script')
 
 const packages = "./packages";
