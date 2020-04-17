@@ -1,5 +1,6 @@
 const fs = require("fs");
-const runScript = require('@npmcli/run-script')
+const runScript = require('@npmcli/run-script');
+var path = require('path');
 
 const packages = "./packages";
 const root_node_modules = "../"
