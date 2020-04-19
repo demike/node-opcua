@@ -9,7 +9,7 @@ const current = process.cwd();
 
 
 const packagesFolder = path.join(current,"./packages");
-const root_node_modules = path.join(current, "../node_modules" /* "../"*/);
+const root_node_modules = path.join(current, /*"../node_modules"*/  "../");
 const target_project = path.join(root_node_modules,'../');
 
 
