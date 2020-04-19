@@ -10,7 +10,7 @@ const current = process.cwd();
 
 
 const packagesFolder = path.join(current,"./packages");
-const root_node_modules = "../node_modules"//"../"
+const root_node_modules = path.join(current, "../node_modules" /*"../"*/);
 const target_project = path.join(root_node_modules,'../');
 
 
@@ -110,12 +110,20 @@ function linkDependencies(internalDeps, thirdPartyDeps) {
       return;
     }
     Object.entries(package.deps).forEach( ([depName,version]) => {
+      const linkDest = path.join(packagesFolder,packageName,'node_modules',depName);
+      const linkDestParent = path.join(linkDest, '../');
+
+      !fs.existsSync(linkDestParent) && fs.mkdirSync(linkDestParent, {recursive: true});
       if(depName in internalDeps) {
         // internal dependency
-        fs.symlink(path.join(packagesFolder,depName),path.join(packagesFolder,packageName,'node_modules',depName), () => undefined);
+        const linkSrc = path.join(packagesFolder,depName);
+        console.log(linkDest);
+        fs.symlink(linkSrc,linkDest, 'junction', (err) => { if(err && err.code !== "EEXIST") {console.log(err)} });
         console.log(packageName + " - internal dep: " + depName);
       } else {
         // external dependency
+        const linkSrc = path.join(root_node_modules,depName)
+        fs.symlink(linkSrc,linkDest, 'junction', (err) => { if(err && err.code !== "EEXIST") {console.log(err)} });
         console.log(packageName + " - external dep: " + depName);
       }
     })
