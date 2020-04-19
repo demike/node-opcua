@@ -20,7 +20,7 @@ const target_project = path.join(root_node_modules,'../');
 let thirdPartyDeps = {};
 
 /**
- * @type { {version: string, deps: {[key: string]: string}  }[] }
+ * @type { {version: string, deps: {[key: string]: string}, devDeps: {[key: string]: string}  }[] }
  */
 let internalDeps = {};
 
@@ -47,7 +47,7 @@ function createDependencyLists(files) {
         console.log("found package: '%s'", fullPath);
 
         let pkg = require(fullPath);
-        internalDeps[pkg.name] = {version: pkg.version, deps: pkg.dependencies};
+        internalDeps[pkg.name] = {version: pkg.version, deps: pkg.dependencies, devDeps: pkg.devDependencies};
   
         Object.assign(allDeps, pkg.dependencies);
   
@@ -100,7 +100,7 @@ function installPackages(dependencyMap) {
 
 /**
  * 
- * @param { {version: string, deps: {[key:string]: string} }[] } internalDeps 
+ * @param { {version: string, deps: {[key:string]: string}, devDeps: {[key:string]: string} }[] } internalDeps 
  * @param { {[string]:string} } thirdPartyDeps 
  */
 function linkDependencies(internalDeps, thirdPartyDeps) {
@@ -109,7 +109,8 @@ function linkDependencies(internalDeps, thirdPartyDeps) {
     if(!package.deps) {
       return;
     }
-    Object.entries(package.deps).forEach( ([depName,version]) => {
+    const deps = [...packages.deps,...package.devDeps];
+    Object.entries(deps).forEach( ([depName,version]) => {
       const linkDest = path.join(packagesFolder,packageName,'node_modules',depName);
       const linkDestParent = path.join(linkDest, '../');
 
