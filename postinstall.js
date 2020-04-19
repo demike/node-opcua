@@ -3,14 +3,13 @@ const util = require("util");
 const npm = require('npm');
 var path = require('path');
 
-const fs_stat = util.promisify(fs.stat);
 const fs_readdir = util.promisify(fs.readdir);
 
 const current = process.cwd();
 
 
 const packagesFolder = path.join(current,"./packages");
-const root_node_modules = path.join(current, /*"../node_modules"*/ "../");
+const root_node_modules = path.join(current, "../node_modules" /* "../"*/);
 const target_project = path.join(root_node_modules,'../');
 
 
@@ -50,6 +49,7 @@ function createDependencyLists(files) {
         internalDeps[pkg.name] = {version: pkg.version, deps: pkg.dependencies, devDeps: pkg.devDependencies};
   
         Object.assign(allDeps, pkg.dependencies);
+        Object.assign(allDeps, pkg.devDependencies);
   
       }
     } catch(err) {
@@ -109,7 +109,7 @@ function linkDependencies(internalDeps, thirdPartyDeps) {
     if(!package.deps) {
       return;
     }
-    const deps = [...packages.deps,...package.devDeps];
+    const deps = {...package.deps,...package.devDeps};
     Object.entries(deps).forEach( ([depName,version]) => {
       const linkDest = path.join(packagesFolder,packageName,'node_modules',depName);
       const linkDestParent = path.join(linkDest, '../');
