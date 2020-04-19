@@ -1,50 +1,134 @@
 const fs = require("fs");
-const runScript = require('@npmcli/run-script');
+const util = require("util");
+const npm = require('npm');
 var path = require('path');
 
-const packages = "./packages";
-const root_node_modules = "../"
+const fs_stat = util.promisify(fs.stat);
+const fs_readdir = util.promisify(fs.readdir);
 
-// Loop through all the files in the temp directory
-fs.readdir(packages, function (err, files) {
-  if (err) {
-    console.error("Could not list the directory.", err);
-    process.exit(1);
-  }
+const current = process.cwd();
 
-  files.forEach(function (file, index) {
-    // Make one pass and make the file complete
-    const fromPath = path.join(packages, file);
-    var toLink = path.join(root_node_modules, file);
 
-    fs.stat(fromPath, function (error, stat) {
-      if (error) {
-        console.error("Error stating file.", error);
-        return;
+const packagesFolder = path.join(current,"./packages");
+const root_node_modules = "../node_modules"//"../"
+const target_project = path.join(root_node_modules,'../');
+
+
+/**
+ * @type { {[key: string]: string} }
+ */
+let thirdPartyDeps = {};
+
+/**
+ * @type { {version: string, deps: {[key: string]: string}  }[] }
+ */
+let internalDeps = {};
+
+/**
+ * @type { {[key: string]: string} }
+ */
+let allDeps = {};
+
+async function execute() {
+
+  const files = await fs_readdir(packagesFolder);
+  createDependencyLists(files);
+  await installPackages(thirdPartyDeps);
+  linkDependencies(internalDeps,thirdPartyDeps);
+//  console.log(internalDeps);
+//  console.log(allDeps);
+}
+
+function createDependencyLists(files) {
+  files.forEach(file => {
+    const fullPath = path.join(packagesFolder, file, 'package.json');
+    try {
+      if (fs.existsSync(fullPath)) {
+        console.log("found package: '%s'", fullPath);
+
+        let pkg = require(fullPath);
+        internalDeps[pkg.name] = {version: pkg.version, deps: pkg.dependencies};
+  
+        Object.assign(allDeps, pkg.dependencies);
+  
       }
-
-      if (stat.isFile())
-        console.log("'%s' is a file.", fromPath);
-      else if (stat.isDirectory())
-        console.log("'%s' is a directory.", fromPath);
-
-      fs.symlink(toLink,fromPath, error => {
-        if (error) {
-          console.error("Dir linking error:", error);
-        } else {
-          console.log("Linked Dir '%s' to '%s'.", fromPath, toPath);
-
-
-          
-        }
-      });
-    });
+    } catch(err) {
+      console.log(err);
+    }
+  
   });
-});
 
-function runPostinstall(fromPath) {
-    runScript({
+
+
+  // find third party deps
+  Object.entries( allDeps ).forEach( ([ name, version]) => {
+    if(! (name in internalDeps)) {
+      thirdPartyDeps[name] = version;
+    }
+  });
+}
+
+// runPostinstall(fromPath);
+/**
+ * 
+ * @param { {[key:string]: string}} thirdPartyDeps { dep : version }
+ */
+function installPackages(dependencyMap) {
+  console.log(dependencyMap);
+    return new Promise( (resolve, reject) => {
+      const packages = Object.entries(dependencyMap).map( ([name, version]) => name + '@' + version );
+      console.log(packages);
+    
+      
+      process.chdir(target_project);
+      npm.load({
+          loaded: false}, (err) => {
+              npm.commands.install(packages, (error,data) => {
+                  if(error) {
+                      console.log('install error:' + error);
+                      reject(error);
+                  } 
+                  if (data) {
+                      console.log(data);
+                      resolve(data);
+                  }
+              });
+          }
+      );
+    });
+}
+
+/**
+ * 
+ * @param { {version: string, deps: {[key:string]: string} }[] } internalDeps 
+ * @param { {[string]:string} } thirdPartyDeps 
+ */
+function linkDependencies(internalDeps, thirdPartyDeps) {
+
+  Object.entries(internalDeps).forEach(([packageName, package]) => {
+    if(!package.deps) {
+      return;
+    }
+    Object.entries(package.deps).forEach( ([depName,version]) => {
+      if(depName in internalDeps) {
+        // internal dependency
+        fs.symlink(path.join(packagesFolder,depName),path.join(packagesFolder,packageName,'node_modules',depName), () => undefined);
+        console.log(packageName + " - internal dep: " + depName);
+      } else {
+        // external dependency
+        console.log(packageName + " - external dep: " + depName);
+      }
+    })
+  })
+}
+
+
+
+function runPostinstall(projectPaths) {
+    npm.commands.runScript({
         event: 'postinstall',
         path:  fromPath
     })
 }
+
+execute();
