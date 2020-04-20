@@ -26,6 +26,11 @@ let internalDeps = {};
 /**
  * @type { {[key: string]: string} }
  */
+let rootProjectDeps = {};
+
+/**
+ * @type { {[key: string]: string} }
+ */
 let allDeps = {};
 
 async function execute() {
@@ -66,6 +71,11 @@ function createDependencyLists(files) {
       thirdPartyDeps[name] = version;
     }
   });
+
+  // find the dependencies of the root project
+  let rootPkg = require(path.join(packagesFolder, '../package.json'));
+  rootProjectDeps = {...rootPkg.dependencies , ...rootPkg.devDependencies};
+
 }
 
 // runPostinstall(fromPath);
@@ -109,7 +119,7 @@ function linkDependencies(internalDeps, thirdPartyDeps) {
     if(!package.deps) {
       return;
     }
-    const deps = {...package.deps,...package.devDeps};
+    const deps = {...package.deps,...package.devDeps,...rootProjectDeps};
     Object.entries(deps).forEach( ([depName,version]) => {
       const linkDest = path.join(packagesFolder,packageName,'node_modules',depName);
       const linkDestParent = path.join(linkDest, '../');
@@ -127,8 +137,8 @@ function linkDependencies(internalDeps, thirdPartyDeps) {
         fs.symlink(linkSrc,linkDest, 'junction', (err) => { if(err && err.code !== "EEXIST") {console.log(err)} });
         console.log(packageName + " - external dep: " + depName);
       }
-    })
-  })
+    });
+  });
 }
 
 
